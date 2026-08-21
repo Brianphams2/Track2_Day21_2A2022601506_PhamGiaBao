@@ -14,6 +14,45 @@ Phụ lục cho [bao-cao.md](bao-cao.md). Số liệu lấy từ lần chạy tr
 
 ---
 
+## Bonus 1 - Tracking MLflow Từ Xa Với DagsHub
+
+**Vấn đề của cách cũ:** khi pipeline chạy trên GitHub Actions, `mlflow` ghi vào thư mục cục bộ
+của runner. Runner bị xóa ngay sau khi job kết thúc, nên mọi thí nghiệm do CI huấn luyện đều
+biến mất — chỉ còn `report.json` trong artifact. Nghĩa là cuốn nhật ký thí nghiệm chỉ ghi được
+các lần chạy trên máy cá nhân, đúng thứ mà MLflow sinh ra để tránh.
+
+**Cách sửa:** trỏ MLflow về tracking server miễn phí của DagsHub gắn với chính repo này.
+
+Bước `Configure remote MLflow tracking (DagsHub)` trong job Train nạp ba biến môi trường từ
+GitHub Secrets vào `$GITHUB_ENV`:
+
+| Secret | Giá trị |
+|---|---|
+| `MLFLOW_TRACKING_URI` | `https://dagshub.com/pbnjs4224/Track2_Day21_2A2022601506_PhamGiaBao.mlflow` |
+| `MLFLOW_TRACKING_USERNAME` | `pbnjs4224` |
+| `MLFLOW_TRACKING_PASSWORD` | access token của DagsHub |
+
+`src/train.py` không cần đổi logic: `mlflow` tự đọc `MLFLOW_TRACKING_URI` từ biến môi trường,
+nên cùng một file chạy được cả cục bộ lẫn từ xa. Script chỉ in thêm URI đang dùng
+(`[MLFLOW] Tracking URI: ...`) để log của pipeline chứng minh nó ghi đi đâu.
+
+Hai lựa chọn thiết kế có chủ ý:
+
+1. **Bước cấu hình không bắt buộc.** Nếu `MLFLOW_TRACKING_URI` rỗng, bước này thoát sớm và
+   MLflow ghi cục bộ như cũ. Ai clone repo mà không có tài khoản DagsHub vẫn chạy được
+   pipeline.
+2. **`log_model` được bọc `try/except`.** Ghi tham số và chỉ số là bắt buộc, lỗi thì dừng
+   pipeline. Riêng việc upload artifact mô hình lên tracking server là phần *quan sát*, không
+   phải sản phẩm giao đi — sản phẩm là `models/model.joblib` được publish lên S3 ở job Release.
+   Một tracking server chập chờn không được phép làm hỏng cả lần huấn luyện.
+
+Kết quả: mỗi lần GitHub Actions huấn luyện, run được ghi lên DagsHub kèm `n_estimators`,
+`learning_rate`, `max_depth` và cả năm chỉ số (`f1_score`, `accuracy`, `positive_rate`,
+`best_threshold`, `f1_at_best_threshold`) — xem được từ bất cứ đâu, không cần mở máy cá nhân.
+Ảnh `06-dagshub-mlflow.png`.
+
+---
+
 ## Bonus 2 - Điều Chỉnh Ngưỡng Quyết Định
 
 `model.predict()` gán nhãn 1 khi xác suất vượt 0.5. Với dữ liệu 75/25 thì ngưỡng này
@@ -94,8 +133,13 @@ qua. `artifacts/current/model.joblib` từ nay chỉ chứa mô hình đã vư�
 3. Job Release publish cả `model.joblib` lẫn `report.json` lên S3, nên `report.json` vừa là
    bằng chứng vừa là mốc so sánh cho lần chạy kế tiếp.
 
-Kết quả so sánh được in vào log của job Quality Gate, ví dụ:
-`So sanh voi model dang chay: moi 0.7354 vs cu 0.7149 (chenh lech +0.0205)`.
+Ở lần chạy đầu tiên sau khi đổi pipeline
+([run #5](https://github.com/Brianphams2/Track2_Day21_2A2022601506_PhamGiaBao/actions/runs/32501465376)),
+S3 chưa có `report.json` nên chốt rollback tự bỏ qua và log in
+`Chua co model tham chieu tren S3 - bo qua chot rollback` — đúng thiết kế, để lần chạy đầu
+không bị chặn oan. Job Release của chính run đó đã publish `report.json` lên S3, nên từ lần
+chạy kế tiếp trở đi log của Quality Gate mới in dòng so sánh thật, dạng:
+`So sanh voi model dang chay: moi 0.7354 vs cu 0.7354 (chenh lech +0.0000)`.
 
 ---
 
@@ -118,39 +162,3 @@ lần chạy chứ không chỉ đọc một lần rồi bỏ.
 
 ---
 
-## Bonus 1 - Tracking MLflow Từ Xa Với DagsHub
-
-**Vấn đề của cách cũ:** khi pipeline chạy trên GitHub Actions, `mlflow` ghi vào thư mục cục bộ
-của runner. Runner bị xóa ngay sau khi job kết thúc, nên mọi thí nghiệm do CI huấn luyện đều
-biến mất — chỉ còn `report.json` trong artifact. Nghĩa là cuốn nhật ký thí nghiệm chỉ ghi được
-các lần chạy trên máy cá nhân, đúng thứ mà MLflow sinh ra để tránh.
-
-**Cách sửa:** trỏ MLflow về tracking server miễn phí của DagsHub gắn với chính repo này.
-
-Bước `Configure remote MLflow tracking (DagsHub)` trong job Train nạp ba biến môi trường từ
-GitHub Secrets vào `$GITHUB_ENV`:
-
-| Secret | Giá trị |
-|---|---|
-| `MLFLOW_TRACKING_URI` | `https://dagshub.com/<user>/<repo>.mlflow` |
-| `MLFLOW_TRACKING_USERNAME` | tên đăng nhập DagsHub |
-| `MLFLOW_TRACKING_PASSWORD` | access token của DagsHub |
-
-`src/train.py` không cần đổi logic: `mlflow` tự đọc `MLFLOW_TRACKING_URI` từ biến môi trường,
-nên cùng một file chạy được cả cục bộ lẫn từ xa. Script chỉ in thêm URI đang dùng
-(`[MLFLOW] Tracking URI: ...`) để log của pipeline chứng minh nó ghi đi đâu.
-
-Hai lựa chọn thiết kế có chủ ý:
-
-1. **Bước cấu hình không bắt buộc.** Nếu `MLFLOW_TRACKING_URI` rỗng, bước này thoát sớm và
-   MLflow ghi cục bộ như cũ. Ai clone repo mà không có tài khoản DagsHub vẫn chạy được
-   pipeline.
-2. **`log_model` được bọc `try/except`.** Ghi tham số và chỉ số là bắt buộc, lỗi thì dừng
-   pipeline. Riêng việc upload artifact mô hình lên tracking server là phần *quan sát*, không
-   phải sản phẩm giao đi — sản phẩm là `models/model.joblib` được publish lên S3 ở job Release.
-   Một tracking server chập chờn không được phép làm hỏng cả lần huấn luyện.
-
-Kết quả: mỗi lần GitHub Actions huấn luyện, run được ghi lên DagsHub kèm `n_estimators`,
-`learning_rate`, `max_depth` và cả năm chỉ số (`f1_score`, `accuracy`, `positive_rate`,
-`best_threshold`, `f1_at_best_threshold`) — xem được từ bất cứ đâu, không cần mở máy cá nhân.
-Ảnh `06-dagshub-mlflow.png`.
