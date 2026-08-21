@@ -6,7 +6,8 @@ Thư mục này là nơi chứa **bằng chứng nộp bài**. Bạn không cầ
 ```
 nop-bai/
 ├── README.md                  <- file này (checklist)
-├── bao-cao.md                 <- template báo cáo, không quá 1 trang A4
+├── bao-cao.md                 <- báo cáo chính, không quá 1 trang A4
+├── bonus.md                   <- phụ lục Bonus 1, 2, 3, 4, 5
 └── anh-chup-man-hinh/
     ├── README.md              <- mô tả yêu cầu của từng ảnh
     ├── 01-mlflow-ui.png
@@ -22,13 +23,13 @@ nop-bai/
 
 Đánh dấu `[x]` khi hoàn thành từng mục:
 
-- [ ] Repo GitHub ở chế độ **public** và chứa toàn bộ code, cấu hình đã hoàn thiện.
-- [ ] Đủ 5 ảnh trong `anh-chup-man-hinh/`, đúng tên file, đúng thứ tự (xem
+- [x] Repo GitHub ở chế độ **public** và chứa toàn bộ code, cấu hình đã hoàn thiện.
+- [x] Đủ 5 ảnh trong `anh-chup-man-hinh/`, đúng tên file, đúng thứ tự (xem
       [yêu cầu chi tiết](anh-chup-man-hinh/README.md)).
-- [ ] `bao-cao.md` đã điền đủ 3 mục bắt buộc và không vượt quá 1 trang A4.
-- [ ] Đã `git push` toàn bộ thư mục `nop-bai/` lên GitHub.
-- [ ] Dán URL repo GitHub vào bài nộp trên **https://codelabs.vlearn.dev**.
-- [ ] Mở lại URL vừa nộp ở chế độ ẩn danh để chắc chắn repo public và người chấm xem được.
+- [x] `bao-cao.md` đã điền đủ 3 mục bắt buộc và không vượt quá 1 trang A4.
+- [x] Đã `git push` toàn bộ thư mục `nop-bai/` lên GitHub.
+- [x] Dán URL repo GitHub vào bài nộp trên **https://codelabs.vlearn.dev**.
+- [x] Mở lại URL vừa nộp ở chế độ ẩn danh để chắc chắn repo public và người chấm xem được.
 
 ---
 
@@ -40,7 +41,10 @@ nop-bai/
 | `02-actions-buoc-2.png` | Bước 2 - CI/CD (bốn jobs màu xanh) | 16 |
 | `03-actions-buoc-3.png` | Bước 3 - Tự động hóa | 12 |
 | `04-curl-api.png` | Bước 2 - Serving | 12 |
-| `05-cloud-storage.png` | Bước 2 - DVC | 12 |
+| `05a-storage-dvc.png` + `05b-storage-model.png` | Bước 2 - DVC | 12 |
+| `07-quality-gate-chan.png` | Bước 2 - Quality gate | 4 |
+
+Phần `bonus.md` giải trình các thách thức nâng cao đã làm (Bonus 1, 2, 3, 4, 5).
 
 Phần `bao-cao.md` chứng minh hạng mục **Bước 1 - Phân tích** (4 điểm) và là nơi bạn giải
 trình khi một ảnh nào đó chưa thể hiện đủ (ví dụ quality gate đã chặn đúng một lần).

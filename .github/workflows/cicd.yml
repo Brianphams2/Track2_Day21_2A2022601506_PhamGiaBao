@@ -36,8 +36,12 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # JOB 2 - TRAIN
-  # Xac thuc cloud storage, pull du lieu bang DVC, huan luyen mo hinh, upload artifact.
+  # Xac thuc cloud storage, pull du lieu bang DVC, huan luyen mo hinh.
   # Chi chay khi Job 1 (Unit Test) hoan thanh thanh cong.
+  #
+  # Mo hinh KHONG duoc day len S3 o job nay. No duoc giu lai duoi dang artifact
+  # cua GitHub Actions va chi duoc publish o Job 4, sau khi quality gate da qua.
+  # Nho vay artifacts/current/model.joblib khong bao gio bi mot mo hinh yeu ghi de.
   # ---------------------------------------------------------------------------
   train:
     name: Train
@@ -45,6 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       f1: ${{ steps.read_report.outputs.f1 }}
+      prev_f1: ${{ steps.prev_report.outputs.prev_f1 }}
 
     steps:
       - uses: actions/checkout@v4
@@ -63,6 +68,40 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-1
 
+      # BONUS 4 - Doc report.json cua model DANG CHAY tren S3 de lat nua so sanh.
+      # Phai doc TRUOC khi huan luyen vi Job 4 se ghi de file nay.
+      - name: Read report of currently deployed model
+        id: prev_report
+        run: |
+          if aws s3 cp "s3://${{ secrets.ARTIFACT_BUCKET }}/artifacts/current/report.json" /tmp/prev_report.json; then
+            PREV=$(python -c "import json; print(json.load(open('/tmp/prev_report.json'))['f1_score'])")
+            echo "Model dang chay tren VM co f1_score = $PREV"
+          else
+            PREV=""
+            echo "Chua co report.json tren S3 - day la lan chay dau tien, bo qua so sanh."
+          fi
+          echo "prev_f1=$PREV" >> "$GITHUB_OUTPUT"
+
+      # BONUS 1 - Ghi thi nghiem len MLflow tracking server tren DagsHub thay vi
+      # file cuc bo trong runner (runner bi xoa sau moi lan chay).
+      # Neu chua cau hinh secret thi buoc nay khong lam gi, pipeline van chay binh thuong.
+      - name: Configure remote MLflow tracking (DagsHub)
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
+          MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
+        run: |
+          if [ -z "$MLFLOW_TRACKING_URI" ]; then
+            echo "Chua cau hinh MLFLOW_TRACKING_URI - MLflow ghi cuc bo trong runner."
+            exit 0
+          fi
+          {
+            echo "MLFLOW_TRACKING_URI=$MLFLOW_TRACKING_URI"
+            echo "MLFLOW_TRACKING_USERNAME=$MLFLOW_TRACKING_USERNAME"
+            echo "MLFLOW_TRACKING_PASSWORD=$MLFLOW_TRACKING_PASSWORD"
+          } >> "$GITHUB_ENV"
+          echo "MLflow se ghi len tracking server tu xa."
+
       - name: Pull data with DVC
         run: dvc pull data/train_batch1.csv.dvc data/holdout.csv.dvc
 
@@ -75,20 +114,28 @@ jobs:
           F1=$(python -c "import json; print(json.load(open('outputs/report.json'))['f1_score'])")
           echo "f1=$F1" >> "$GITHUB_OUTPUT"
 
-      - name: Upload model to S3
-        run: aws s3 cp models/model.joblib "s3://${{ secrets.ARTIFACT_BUCKET }}/artifacts/current/model.joblib"
-
-      - name: Save report as artifact
+      # BONUS 3 - Luu ca report.json lan detail.txt (confusion matrix,
+      # precision/recall tung lop) de tai ve doi chieu sau nay.
+      - name: Save reports as artifact
         uses: actions/upload-artifact@v4
         with:
           name: report
-          path: outputs/report.json
+          path: |
+            outputs/report.json
+            outputs/detail.txt
+
+      - name: Save model as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: model
+          path: models/model.joblib
 
 
   # ---------------------------------------------------------------------------
   # JOB 3 - QUALITY GATE
-  # Kiem tra nguong chat luong (f1_score >= 0.65).
-  # Pipeline dung lai o day neu mo hinh chua dat yeu cau.
+  # Hai chot chan truoc khi trien khai:
+  #   1. Nguong tuyet doi : f1_score >= 0.65
+  #   2. Nguong tuong doi : f1_score moi >= f1_score cua model dang chay (Bonus 4)
   #
   # Luu y: nguong o day dat tren f1_score chu KHONG phai accuracy. Bo du lieu
   # Adult co ty le lop 75/25, nen mot mo hinh doan bua "thu nhap thap" cho moi
@@ -102,25 +149,76 @@ jobs:
     steps:
 
       - name: Check quality gate
+        env:
+          NEW_F1: ${{ needs.train.outputs.f1 }}
+          PREV_F1: ${{ needs.train.outputs.prev_f1 }}
         run: |
           python - <<'PYEOF'
-          f1 = float("${{ needs.train.outputs.f1 }}")
+          import os
+
+          f1 = float(os.environ["NEW_F1"])
+          prev_raw = os.environ.get("PREV_F1", "").strip()
+
+          # Chot 1: nguong chat luong tuyet doi.
           if f1 < 0.65:
               raise SystemExit(f"FAILED: f1_score {f1:.4f} < 0.65. Huy trien khai.")
-          print(f"PASSED: f1_score {f1:.4f} >= 0.65. Dang trien khai model.")
+          print(f"PASSED (nguong tuyet doi): f1_score {f1:.4f} >= 0.65.")
+
+          # Chot 2 (Bonus 4): khong trien khai model kem hon model dang chay.
+          if prev_raw:
+              prev = float(prev_raw)
+              print(
+                  f"So sanh voi model dang chay: moi {f1:.4f} vs cu {prev:.4f} "
+                  f"(chenh lech {f1 - prev:+.4f})"
+              )
+              if f1 < prev:
+                  raise SystemExit(
+                      f"FAILED (rollback): f1_score moi {f1:.4f} thap hon model dang "
+                      f"chay {prev:.4f}. Giu nguyen model cu, huy trien khai."
+                  )
+              print("PASSED (rollback): model moi khong kem hon model dang chay.")
+          else:
+              print("Chua co model tham chieu tren S3 - bo qua chot rollback.")
+
+          print("Dang trien khai model.")
           PYEOF
 
 
   # ---------------------------------------------------------------------------
   # JOB 4 - RELEASE
-  # Trien khai len VM qua SSH.
+  # Publish model da qua gate len S3, sau do restart service tren VM qua SSH.
   # Chi chay khi Job 3 (Quality Gate) hoan thanh thanh cong.
   # ---------------------------------------------------------------------------
   release:
     name: Release
-    needs: quality-gate
     runs-on: ubuntu-latest
+    needs: quality-gate
     steps:
+
+      - name: Download model artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: model
+          path: models
+
+      - name: Download report artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: report
+          path: outputs
+
+      - name: Authenticate to AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      # report.json duoc publish cung model de lan chay sau doc lai lam moc so sanh.
+      - name: Publish model to S3
+        run: |
+          aws s3 cp models/model.joblib "s3://${{ secrets.ARTIFACT_BUCKET }}/artifacts/current/model.joblib"
+          aws s3 cp outputs/report.json "s3://${{ secrets.ARTIFACT_BUCKET }}/artifacts/current/report.json"
 
       - name: SSH deploy to VM
         uses: appleboy/ssh-action@v1.0.3

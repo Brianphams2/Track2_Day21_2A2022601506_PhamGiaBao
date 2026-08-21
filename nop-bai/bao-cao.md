@@ -28,6 +28,8 @@
 
 Dữ liệu chỉ có khoảng 24,8% mẫu thuộc lớp thu nhập trên 50K nên accuracy bị chi phối bởi lớp thu nhập thấp. Một mô hình luôn dự đoán lớp thấp vẫn đạt accuracy khoảng 0.752 nhưng F1 của lớp dương bằng 0 vì không phát hiện được người thu nhập cao nào. F1 cân bằng precision và recall của chính lớp dương, vì vậy phản ánh trực tiếp khả năng vừa hạn chế dự đoán nhầm vừa giảm bỏ sót lớp cần phát hiện. Gate dùng `f1_score(y_eval, preds)` với mặc định `pos_label=1`; không dùng weighted hay macro vì các cách tổng hợp đó có thể che khuất hiệu quả thật trên lớp thiểu số. Do đó ngưỡng F1 0.65 bảo vệ sản phẩm tốt hơn một ngưỡng accuracy tưởng như cao.
 
+**Bằng chứng gate thực sự chặn:** cố tình push bộ tham số yếu (50 / 0.05 / 2) cho F1 0.6051 trong khi accuracy vẫn 0.8460 — job Quality Gate thất bại và job Release không chạy (ảnh `07-quality-gate-chan.png`, [run #2](https://github.com/Brianphams2/Track2_Day21_2A2022601506_PhamGiaBao/actions/runs/32494775032)). Nếu ngưỡng đặt trên accuracy thì mô hình này đã được triển khai.
+
 ---
 
 ## 3. Khó Khăn Gặp Phải và Cách Giải Quyết
@@ -48,3 +50,9 @@ Dữ liệu chỉ có khoảng 24,8% mẫu thuộc lớp thu nhập trên 50K n�
 | Bước 3 (thêm `train_batch2`) | 0.7354 | 0.8820 |
 
 **Nhận xét:** Khi tăng dữ liệu huấn luyện từ 22.361 lên 44.722 mẫu, F1 tăng 0.0205 và accuracy tăng 0.0080 trên cùng tập holdout. Batch mới cùng phân phối nhưng bổ sung nhiều ví dụ lớp dương và các trường hợp biên, giúp mô hình tổng quát hóa tốt hơn; kết quả này không có nghĩa thêm dữ liệu luôn bảo đảm tăng điểm.
+
+---
+
+## 5. Phần Bonus
+
+Đã thực hiện cả 5 bonus: 1 (MLflow từ xa trên DagsHub), 2 (quét ngưỡng quyết định), 3 (precision/recall tự động), 4 (chặn hoàn trả về model kém hơn), 5 (cảnh báo lệch phân phối). Số liệu và giải trình chi tiết — gồm cả câu trả lời cho câu hỏi "sai lầm nào tốn kém hơn" của Bonus 3 — nằm trong [bonus.md](bonus.md).
