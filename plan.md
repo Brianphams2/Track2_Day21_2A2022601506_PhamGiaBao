@@ -8,6 +8,10 @@
 >
 > Tên S3 bucket do người dùng chọn: **`amz01day21msv01506`**.
 
+## Trạng thái thực tế (đã hoàn thành ngày 21/08/2026)
+
+Toàn bộ code, AWS, DVC, MLflow, EC2 và CI/CD đã hoàn thành. Pipeline lần đầu và pipeline do commit dữ liệu đều có bốn job xanh; quality gate đã chặn thành công cấu hình yếu; endpoint public và model S3 đã được xác nhận. Việc còn lại duy nhất là người dùng chụp ảnh theo mục 11 rồi commit các file ảnh.
+
 ## A. Những việc bạn cần làm trước
 
 ### A1. Xác nhận đúng tài khoản AWS và quyền
@@ -624,12 +628,12 @@ Không xóa S3/model/ảnh trước khi chấm. Khi start lại, public IP có t
 
 ## Checklist hoàn thành
 
-- [ ] AWS identity đúng, region mọi nơi là `us-east-1`.
-- [ ] MLflow có >= 3 run, đủ params, F1 và accuracy.
-- [ ] `pytest tests/ -v`: 3 passed.
-- [ ] S3 có `dvc/` và `artifacts/current/model.joblib`.
-- [ ] Pipeline lần đầu có bốn job xanh.
-- [ ] Quality Gate từng chặn model yếu và skip Release.
-- [ ] Commit dữ liệu duy nhất kích hoạt bốn job xanh.
-- [ ] EC2 trả healthz OK và score có label hợp lệ.
+- [x] AWS identity đúng, region mọi nơi là `us-east-1`.
+- [x] MLflow có >= 3 run, đủ params, F1 và accuracy.
+- [x] `pytest tests/ -v`: 3 passed.
+- [x] S3 có `dvc/` và `artifacts/current/model.joblib`.
+- [x] Pipeline lần đầu có bốn job xanh.
+- [x] Quality Gate từng chặn model yếu và skip Release.
+- [x] Commit dữ liệu duy nhất kích hoạt bốn job xanh.
+- [x] EC2 trả healthz OK và score có label hợp lệ.
 - [ ] Đủ ảnh, báo cáo <= 1 trang, repo Public, không lộ secret.

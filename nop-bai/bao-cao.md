@@ -20,7 +20,7 @@
 
 **Bộ siêu tham số đã chọn:** `n_estimators=200`, `learning_rate=0.1`, `max_depth=5`.
 
-**Lý do:** Lần chạy 3 có F1 cao nhất (0.7149), vượt ngưỡng 0.65 và tốt hơn hai cấu hình còn lại. Lần chạy 1 có accuracy cao nhất (0.8780) nhưng F1 thấp hơn, cho thấy chọn theo accuracy sẽ không tối ưu khả năng nhận diện lớp thu nhập cao. Cấu hình yếu với ít cây, learning rate thấp và cây nông chỉ đạt F1 0.6051; tăng số cây và độ sâu giúp boosting sửa được nhiều lỗi hơn.
+**Lý do:** Lần chạy 3 có F1 cao nhất (0.7149), vượt ngưỡng 0.65. Lần chạy 1 có accuracy cao nhất (0.8780) nhưng F1 thấp hơn, cho thấy chọn theo accuracy sẽ không tối ưu khả năng nhận diện lớp thu nhập cao. Cấu hình yếu với ít cây, learning rate thấp và cây nông chỉ đạt F1 0.6051; tăng số cây và độ sâu giúp boosting sửa được nhiều lỗi hơn.
 
 ---
 
