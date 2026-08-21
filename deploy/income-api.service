@@ -1,0 +1,16 @@
+[Unit]
+Description=Income Model Inference Server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=ec2-user
+WorkingDirectory=/home/ec2-user
+Environment="ARTIFACT_BUCKET=amz01day21msv01506"
+Environment="AWS_REGION=us-east-1"
+ExecStart=/home/ec2-user/income-api-venv/bin/python /home/ec2-user/src/serve.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
