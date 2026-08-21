@@ -35,6 +35,8 @@ Chụp trang chi tiết của một lần chạy workflow trong tab **Actions**.
 
 Chụp ở bước: [Bước 2, phần Kết Quả Cần Đạt](../../tasks/buoc-2.md).
 
+Run đã hoàn thành: <https://github.com/Brianphams2/Track2_Day21_2A2022601506_PhamGiaBao/actions/runs/32493902550>
+
 ---
 
 ## `03-actions-buoc-3.png` - GitHub Actions ở Bước 3
@@ -51,15 +53,17 @@ cần tác động thủ công", nên khác biệt so với ảnh `02` nằm ở
 
 Chụp ở bước: [Bước 3, phần Kết Quả Cần Đạt](../../tasks/buoc-3.md).
 
+Run commit dữ liệu đã hoàn thành: <https://github.com/Brianphams2/Track2_Day21_2A2022601506_PhamGiaBao/actions/runs/32495193074>
+
 ---
 
 ## `04-curl-api.png` - Kết quả gọi API trên VM
 
 Chụp cửa sổ terminal chứa **cả hai lệnh và cả hai kết quả**:
 
-```bash
-curl http://VM_IP:8080/healthz
-curl -X POST http://VM_IP:8080/score -H "Content-Type: application/json" -d '{...}'
+```powershell
+curl.exe http://3.89.87.129:8080/healthz
+curl.exe -X POST http://3.89.87.129:8080/score -H "Content-Type: application/json" -d '{"features":[39,5,13,4,0,1,1,2174,0,40]}'
 ```
 
 Ảnh phải thấy rõ:
@@ -86,6 +90,9 @@ Chụp giao diện web của cloud storage (GCS / S3 / Azure Blob).
 Nếu hai đường dẫn nằm ở hai màn hình khác nhau, được phép nộp thành hai file
 `05a-storage-dvc.png` và `05b-storage-model.png`.
 
+- DVC: <https://s3.console.aws.amazon.com/s3/buckets/amz01day21msv01506?region=us-east-1&prefix=dvc/&showversions=false>
+- Model: <https://s3.console.aws.amazon.com/s3/buckets/amz01day21msv01506?region=us-east-1&prefix=artifacts/current/&showversions=false>
+
 ---
 
 ## Ảnh Tùy Chọn (cho phần Bonus)
@@ -95,3 +102,5 @@ trong `bao-cao.md`. Ví dụ:
 
 - `06-dagshub-mlflow.png` — Bonus 1: MLflow trên DagsHub.
 - `07-quality-gate-chan.png` — quality gate chặn Release khi `f1_score < 0.65`.
+
+Run quality gate đã chặn model yếu: <https://github.com/Brianphams2/Track2_Day21_2A2022601506_PhamGiaBao/actions/runs/32494775032>
